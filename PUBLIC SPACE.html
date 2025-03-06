@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>London public space Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lobster&family=Pacifico&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    
+        #cover {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #d5ecc9; /* Soft greenish background */
+            background-image: url('https://images.unsplash.com/photo-1525107110480-d2cdbb45dff3?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&q=80&w=400'); /* Background city park image */
+            background-size: cover;
+            background-position: center;
+            color: #2d4b39; /* Dark green text color for elegance */
+            text-align: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+    
+        #cover h1 {
+            font-family: 'Lobster'; /* 你可以改成 'Lobster' 或 'Pacifico' */
+            font-size: 3rem;
+            font-weight: 700;
+            color: #252525;
+            margin-bottom: 20px;
+        }
+    
+        #cover p {
+            font-size: 1rem;
+            color: #605f5f;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+    
+        button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #ffffff;
+            background-color: #097660; /* Fresh green */
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+    
+        button:hover {
+            background-color: #949494; /* Darker green on hover */
+            transform: scale(1.05);
+        }
+    
+        button:focus {
+            outline: none;
+        }
+    
+        #map {
+            display: none;
+            height: 90vh;
+            position: relative;
+        }
+        
+        #map h1 
+        {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 2rem;
+        font-weight: 700;
+        color: #252525;
+        z-index: 1000;
+        text-shadow: 2px 2px 4px rgb(255, 255, 255);
+        background-color: rgba(255, 255, 255, 0.7); /* 半透明的白色背景 */
+        padding: 10px 20px; /* 为文本添加内边距 */
+        border-radius: 10px; /* 添加圆角边框 */
+        }
+
+        #buttons {
+        text-align: center;
+        margin: 5px 0;
+    }
+
+    button {
+        margin: 5px;
+        padding: 8px 16px; /* Smaller padding */
+        font-size: 14px;    /* Smaller font size */
+        cursor: pointer;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+        background-color: #949594;
+        transform: scale(1.05);
+    }
+
+    button:focus {
+        outline: none;
+    }
+
+    .park { background-color: #097660; color: white; }
+    .square { background-color: #c36822; color: black; }
+    .sport { background-color: #88d3c7; color: white; }
+    .dog { background-color: #deaaa0; color: white; }
+
+     /* 返回按钮样式 */
+     #backButton {
+        position: absolute;
+        top: 10px;
+        left: 50px;
+        background-color: #858585; /* 灰色背景 */
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 50%; /* 圆形按钮 */
+        font-size: 10px;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    /* 鼠标悬停时的效果 */
+    #backButton:hover {
+        background-color: #555555; /* 悬停时背景色加深 */
+        transform: scale(1.1);
+    }
+
+    /* 箭头符号 */
+    #backButton::before {
+        content: '←';  /* 使用箭头符号 */
+        font-size: 24px;
+    }
+
+    #infoBox {
+    position: absolute;
+    bottom: 20px;        /* 距离底部20px */
+    right: 20px;         /* 距离右侧20px */
+    background-color: rgba(255, 255, 255, 0.7); /* 半透明白色背景 */
+    color: #333;         /* 深灰色文本 */
+    padding: 15px;       /* 内边距 */
+    border-radius: 8px;  /* 圆角边框 */
+    width: 250px;        /* 固定宽度 */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* 轻微阴影 */
+    font-size: 14px;     /* 字体大小 */
+    text-align: left;    /* 文本左对齐 */
+    transition: all 0.3s ease; /* 平滑过渡 */
+    z-index: 1000;       /* 设置较高的层级，确保文本框在地图上方 */
+}
+
+#infoBox:hover {
+    background-color: rgba(255, 255, 255, 1); /* 完全不透明的背景 */
+}
+
+</style>
+ 
+
+
+</head>
+<body>
+
+    <!-- Cover Page -->
+    <div id="cover">
+        <div>
+            <h1>Visualisation of green and public Spaces in London</h1>
+            <p>Enter the public space map of London</p>
+            <button onclick="showMap()">Next</button>
+        </div>
+    </div>
+
+    <!-- Map Page -->
+    <div id="map">
+
+    <!-- 返回按钮 -->
+    <button id="backButton" onclick="goBack()">←</button>
+    
+    <div id="map"></div>
+    <div id="infoBox">
+        <p>Public spaces in London are vital to urban life, offering residents and visitors diverse recreational, social, and cultural spaces. These areas enhance the city’s environment and support community cohesion and the well-being of citizens. London’s public spaces mainly consist of parks, squares, sports fields, and other recreational areas. The design and layout of these spaces directly influence the city’s livability and residents’ quality of life.</p>
+        
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+        <canvas id="myPieChartpieChart"></canvas> <!-- 添加饼状图 -->
+    </div>
+
+
+        <!-- Text Overlay -->
+        <h1>Public Spaces in London</h1>
+    </div>
+    <div id="buttons">
+        <button class="park" onclick="toggleLayer(parkLayer)">Park</button>
+        <button class="square" onclick="toggleLayer(squareLayer)">Plaza</button>
+        <button class="sport" onclick="toggleLayer(sportFieldLayer)">Playground</button>
+        <button class="dog" onclick="toggleLayer(dogAreaLayer)">Dog area</button>
+    </div>
+    
+    
+
+    
+    
+    <script>
+        // 初始化地图
+        var map = L.map('map').setView([51.5074, -0.1278], 13);  // 伦敦坐标
+
+        // 添加 OpenStreetMap 图层
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CartoDB</a>'
+        }).addTo(map);
+
+        // 加载伦敦边界GeoJSON文件
+        function loadLondonBoundary() {
+            fetch('greater-london.geo.json')  // 替换为你实际的文件路径
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data, {
+                        style: function() {
+                            return {
+                                color: "#FF5733",  // 设置边界颜色（橙色）
+                                weight: 3,         // 边界宽度
+                                opacity: 5,        // 边界透明度
+                                fill: false        // 不填充颜色，仅显示边界线
+                            };
+                        }
+                    }).addTo(map);
+                })
+                .catch(err => console.log('加载伦敦边界GeoJSON文件时出错:', err));
+        }
+
+        // 调用函数加载边界
+        loadLondonBoundary();
+
+        // 创建图层组
+        var parkLayer = L.layerGroup();
+        var squareLayer = L.layerGroup();
+        var sportFieldLayer = L.layerGroup();
+        var dogAreaLayer = L.layerGroup();
+
+        // 颜色映射
+        const colors = {
+            "park": "#097660",      // 深绿色
+            "plaza": "#c36822",      // 金黄色
+            "playground": "#88d3c7",    // 蓝色
+            "dog area": "#deaaa0"   // 紫色
+        };
+
+        // 加载每个公共空间类型的 GeoJSON 文件，并应用颜色
+        function loadGeoJSONLayer(url, layerGroup, type) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data, {
+                        style: function(feature) {
+                            return {
+                                color: colors[type],  // 线条颜色
+                                weight: 2,           // 线条宽度
+                                fillColor: colors[type],  // 填充颜色
+                                fillOpacity: 0.5     // 透明度
+                            };
+                        },
+                        onEachFeature: function (feature, layer) {
+                            layer.bindPopup(`<h3>${feature.properties.name || "未命名"}</h3><p>${type}</p>`);
+                        }
+                    }).addTo(layerGroup);
+                })
+                .catch(err => console.log('Error loading GeoJSON:', err));
+        }
+
+        // 加载各个类型的 GeoJSON 数据
+        loadGeoJSONLayer('export.geojson', parkLayer, "park");
+        loadGeoJSONLayer('export-2.geojson', squareLayer, "plaza");
+        loadGeoJSONLayer('export-3.geojson', sportFieldLayer, "playground");
+        loadGeoJSONLayer('export-4.geojson', dogAreaLayer, "dog area");
+
+        function loadGeoJSONLayer(url, layerGroup, type) {
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            L.geoJSON(data, {
+                pointToLayer: function (feature, latlng) {
+                    // 如果是狗狗区域（点），用紫色小圆点
+                    if (type === "dog area") {
+                        return L.circleMarker(latlng, {
+                            radius: 6,          // 圆圈大小
+                            fillColor: colors[type],
+                            color: colors[type],
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                    } else {
+                        return L.marker(latlng);  // 其他类型保持默认 Marker
+                    }
+                },
+                style: function(feature) {
+                    // 仅对面数据（Polygon）应用颜色
+                    return {
+                        color: colors[type],
+                        weight: 2,
+                        fillColor: colors[type],
+                        fillOpacity: 0.5
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    layer.bindPopup(`<h3>${feature.properties.name || "未命名"}</h3><p>${type}</p>`);
+                }
+            }).addTo(layerGroup);
+        })
+        .catch(err => console.log('Error loading GeoJSON:', err));
+}
+
+        // 切换图层显示
+        function toggleLayer(layer) {
+            if (map.hasLayer(layer)) {
+                map.removeLayer(layer);
+            } else {
+                map.addLayer(layer);
+            }
+        }
+
+        // 显示地图并隐藏封面
+        function showMap() {
+            document.getElementById('cover').style.display = 'none';
+            document.getElementById('map').style.display = 'block';
+            map.addLayer(parkLayer);
+            map.addLayer(squareLayer);
+            map.addLayer(sportFieldLayer);
+            map.addLayer(dogAreaLayer);
+        }
+        
+
+        // 等待页面加载完成后再绘制图表
+    document.addEventListener("DOMContentLoaded", function () {
+        var ctx = document.getElementById('pieChart').getContext('2d');
+        var pieChart = new Chart(ctx, {
+            type: 'pie',  // 指定为饼图
+            data: {
+                labels: ['公园', '广场', '运动场', '狗狗公园'],
+                datasets: [{
+                    data: [70, 10, 15, 5],  // 对应的占比
+                    backgroundColor: ['#097660', '#c36822', '#88d3c7', '#deaaa0'], // 颜色
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,  // 使图表自适应
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'  // 设置图例位置
+                    }
+                }
+            }
+        });
+    });
+        // 返回首页函数
+        function goBack() {
+            document.getElementById('map').style.display = 'none';
+            document.getElementById('cover').style.display = 'block';
+        }
+        
+
+
+    // 返回首页函数
+    function goBack() {
+        // 隐藏地图页面
+        document.getElementById('map').style.display = 'none';
+        
+        // 显示封面
+        document.getElementById('cover').style.display = 'block';
+
+        // 重置地图视图，如果需要
+        map.setView([51.5074, -0.1278], 13); // 回到伦敦初始视图
+
+        // 如果你有其他需要重置的元素，可以在这里加入重置代码
+    }
+    
+   
+
+    // 等待页面加载完成后再绘制图表
+    document.addEventListener("DOMContentLoaded", function () {
+        var ctx = document.getElementById('pieChart').getContext('2d');
+        var pieChart = new Chart(ctx, {
+            type: 'pie',  // 指定为饼图
+            data: {
+                labels: ['公园', '广场', '运动场', '狗狗公园'],
+                datasets: [{
+                    data: [70, 10, 15, 5],  // 对应的占比
+                    backgroundColor: ['#097660', '#c36822', '#88d3c7', '#deaaa0'], // 颜色
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,  // 使图表自适应
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'  // 设置图例位置
+                    }
+                }
+            }
+        });
+    });
+
+</script>
+
+</body>
+</html>
